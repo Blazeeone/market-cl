@@ -1,0 +1,35 @@
+
+body {
+  margin: 0;
+  background-color: #c5c5c555; /* Un gris muy suave de fondo para que las tarjetas blancas resalten */
+}
+
+.oculto {
+  display: none !important;
+}
+
+.card {
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: scale(1.03); 
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.centrar-texto-carrusel {
+  top: 50%;
+  bottom: auto; /* Le quita la orden de pegarse abajo */
+  transform: translateY(-50%); /* Lo centra perfectamente a la mitad */
+}
+
+.centrar-texto-carrusel h5 {
+  font-size: 3rem; /* Equivale a unos 48px. Puedes subirlo o bajarlo */
+  text-shadow: 2px 2px 5px rgba(0,0,0,0.7); /* Una sombrita para que resalte sobre la imagen */
+}
+
+/* Agrandar el párrafo (el p) del carrusel */
+.centrar-texto-carrusel p {
+  font-size: 1.5rem; /* Equivale a unos 24px */
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
+}
