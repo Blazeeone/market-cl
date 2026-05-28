@@ -21,13 +21,13 @@ const catalogoProductos = [
   { id: 8, nombre: "Mouse Gamer", precio: 8000, imagen: "img/card/mouse-gamer-led-rgb.jpg"}
 ];
 
-function renderizarProductos() {
+function renderizarProductos(productosAMostrar = catalogoProductos) {
   const contenedor = document.getElementById('contenedor-productos');
   if (!contenedor) return; 
 
   contenedor.innerHTML = ''; 
 
-  catalogoProductos.forEach((producto) => {
+  productosAMostrar.forEach((producto) => {
     const columna = document.createElement('div');
     columna.className = 'col-md-3 mb-3';
     columna.innerHTML = `
@@ -46,18 +46,26 @@ function renderizarProductos() {
   });
 }
 
+window.filtrarProductos = function() {
+  const textoBusqueda = document.getElementById('inputBuscador').value.toLowerCase();
+  const productosFiltrados = catalogoProductos.filter(producto => 
+    producto.nombre.toLowerCase().includes(textoBusqueda)
+  );
+  renderizarProductos(productosFiltrados);
+}
+
 function mostrar(id) {
   const secciones = document.querySelectorAll("#contenido-perfil > *");
   secciones.forEach(sec => sec.classList.add("oculto"));
   document.getElementById(id).classList.remove("oculto");
 }
 
-let descuentoActivo = 0;
-
 function obtenerCarrito() {
   const carrito = localStorage.getItem('carrito');
   return carrito ? JSON.parse(carrito) : [];
 }
+
+// CRUD del carrito
 
 window.agregarAlCarrito = function(idProducto) {
   const carrito = obtenerCarrito();
@@ -151,6 +159,8 @@ window.aplicarDescuento = function() {
   
   cargarTablaCarrito();
 };
+
+let descuentoActivo = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
   cargarComponentes("nav-container", "nav.html");
