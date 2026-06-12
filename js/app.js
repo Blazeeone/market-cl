@@ -1,13 +1,25 @@
-function cargarComponentes(id, archivo){
+// Función para formatear el dinero a pesos chilenos (CLP)
+const formatearCLP = (valor) => {
+  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(valor);
+};
+
+// Cargar componentes con Async/Await
+async function cargarComponentes(id, archivo) {
   const subcarpetas = window.location.pathname.includes("/pages/");
   const ruta = subcarpetas ? `../components/${archivo}` : `components/${archivo}`;
   
-  fetch(ruta)
-  .then((res => res.text()))
-  .then((html) => {
-      document.getElementById(id).innerHTML = html;
-  })
-  .catch(() => console.warn(`No se cargo el ${archivo}`));
+  try {
+    const res = await fetch(ruta);
+    const html = await res.text();
+    document.getElementById(id).innerHTML = html;
+    
+    // Si se cargó el menú de navegación, verificamos si hay una sesión activa
+    if (archivo === 'nav.html') {
+      actualizarNavSesion();
+    }
+  } catch (error) {
+    console.warn(`No se cargó el ${archivo}`, error);
+  }
 }
 
 const catalogoProductos = [
@@ -35,7 +47,7 @@ function renderizarProductos(productosAMostrar = catalogoProductos) {
         <img src="${producto.imagen}" class="card-img-top" style="height: 300px; object-fit: cover;" alt="${producto.nombre}">
         <div class="card-body d-flex flex-column">
           <h5 class="card-title fw-bold">${producto.nombre}</h5>
-          <p class="card-text text-success fs-5">$${producto.precio}</p>
+          <p class="card-text text-success fs-5">${formatearCLP(producto.precio)}</p>
           <button class="btn btn-dark mt-auto" onclick="agregarAlCarrito(${producto.id})">
             <i class="bi bi-cart-plus"></i> Agregar
           </button>
@@ -57,7 +69,8 @@ window.filtrarProductos = function() {
 function mostrar(id) {
   const secciones = document.querySelectorAll("#contenido-perfil > *");
   secciones.forEach(sec => sec.classList.add("oculto"));
-  document.getElementById(id).classList.remove("oculto");
+  const seccionMostrar = document.getElementById(id);
+  if(seccionMostrar) seccionMostrar.classList.remove("oculto");
 }
 
 function obtenerCarrito() {
@@ -66,7 +79,6 @@ function obtenerCarrito() {
 }
 
 // CRUD del carrito
-
 window.agregarAlCarrito = function(idProducto) {
   const carrito = obtenerCarrito();
   const producto = catalogoProductos.find(p => p.id === idProducto);
@@ -106,13 +118,13 @@ window.cargarTablaCarrito = function() {
     fila.innerHTML = `
       <td class="align-middle">${index + 1}</td>
       <td class="align-middle fw-bold">${item.nombre}</td>
-      <td class="align-middle">$${item.precio}</td>
+      <td class="align-middle">${formatearCLP(item.precio)}</td>
       <td class="align-middle">
         <button class="btn btn-sm btn-outline-dark" onclick="modificarCantidad(${index}, -1)">-</button>
         <span class="mx-2 fw-bold">${item.cantidad}</span>
         <button class="btn btn-sm btn-outline-dark" onclick="modificarCantidad(${index}, 1)">+</button>
       </td>
-      <td class="align-middle text-success fw-bold">$${subtotalItem}</td>
+      <td class="align-middle text-success fw-bold">${formatearCLP(subtotalItem)}</td>
       <td class="align-middle">
         <button class="btn btn-danger btn-sm" onclick="eliminarDelCarrito(${index})">Eliminar</button>
       </td>
@@ -121,7 +133,8 @@ window.cargarTablaCarrito = function() {
   });
 
   const totalFinal = subtotalCompra - (subtotalCompra * descuentoActivo);
-  document.getElementById('totalCompra').textContent = totalFinal;
+  const celdaTotal = document.getElementById('totalCompra');
+  if(celdaTotal) celdaTotal.textContent = formatearCLP(totalFinal);
 };
 
 window.modificarCantidad = function(index, cambio) {
@@ -162,6 +175,29 @@ window.aplicarDescuento = function() {
 
 let descuentoActivo = 0;
 
+// Lógica Visual de Sesión en el Menú
+window.actualizarNavSesion = function() {
+  const usuarioActivo = JSON.parse(localStorage.getItem('usuarioActivo'));
+  const navUsuario = document.getElementById('nav-usuario'); // <- IMPORTANTE: Agrega un div con id="nav-usuario" en tu nav.html
+
+  if (usuarioActivo && navUsuario) {
+    navUsuario.innerHTML = `
+      <span class="navbar-text me-3 fw-bold text-primary">Hola, ${usuarioActivo.nombre}</span>
+      <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
+    `;
+  }
+}
+
+window.cerrarSesion = function() {
+  localStorage.removeItem('usuarioActivo');
+  window.location.reload(); 
+}
+
+function obtenerUsuarios(){
+  const usuarios = localStorage.getItem('usuarios');
+  return usuarios ? JSON.parse(usuarios) : [];    
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   cargarComponentes("nav-container", "nav.html");
   cargarComponentes("footer-container", "footer.html");
@@ -169,13 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
   renderizarProductos();
   cargarTablaCarrito();
 
+  // === LÓGICA DE REGISTRO ===
   const formRegistro = document.getElementById('formRegistro');
-  const mensaje = document.getElementById('msgRegistro');
-
-  function obtenerUsuarios(){
-    const usuarios = localStorage.getItem('usuarios');
-    return usuarios ? JSON.parse(usuarios) : [];    
-  }
+  const mensajeRegistro = document.getElementById('msgRegistro');
 
   if (formRegistro) {
     formRegistro.addEventListener('submit', (e) => {
@@ -186,8 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = document.getElementById('regPassword').value;
 
       if (nombre === "" || correo === "" || password === "") {
-        mensaje.textContent = "Error: Faltan datos por llenar.";
-        mensaje.className = "mt-2 text-danger text-center fw-bold";
+        mensajeRegistro.textContent = "Error: Faltan datos por llenar.";
+        mensajeRegistro.className = "mt-2 text-danger text-center fw-bold";
         return; 
       }
 
@@ -196,10 +228,50 @@ document.addEventListener('DOMContentLoaded', () => {
       usuarios.push({nombre, correo, password});
       localStorage.setItem('usuarios', JSON.stringify(usuarios));
 
-      mensaje.textContent = "¡Usuario guardado exitosamente!";
-      mensaje.className = "mt-2 text-success text-center fw-bold";
+      mensajeRegistro.textContent = "¡Usuario guardado exitosamente!";
+      mensajeRegistro.className = "mt-2 text-success text-center fw-bold";
 
       formRegistro.reset(); 
+    });
+  }
+
+  // === LÓGICA DE LOGIN ===
+  const formLogin = document.getElementById('formLogin');
+  const msgLogin = document.getElementById('msgLogin');
+
+  if (formLogin) {
+    formLogin.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const correo = document.getElementById('loginCorreo').value;
+      const password = document.getElementById('loginPassword').value;
+
+      if (correo === "" || password === "") {
+        msgLogin.textContent = "Error: Faltan datos por llenar.";
+        msgLogin.className = "mt-2 text-danger text-center fw-bold";
+        return;
+      }
+
+      const usuarios = obtenerUsuarios(); 
+      const usuarioValido = usuarios.find(user => user.correo === correo && user.password === password);
+
+      if (usuarioValido) {
+        localStorage.setItem('usuarioActivo', JSON.stringify(usuarioValido));
+        
+        msgLogin.textContent = `¡Bienvenido, ${usuarioValido.nombre}! Redirigiendo...`;
+        msgLogin.className = "mt-2 text-success text-center fw-bold";
+        
+        actualizarNavSesion();
+
+        setTimeout(() => {
+          // Redirige al index dependiendo de dónde esté el usuario
+          window.location.href = window.location.pathname.includes("/pages/") ? '../index.html' : 'index.html';
+        }, 1500);
+
+      } else {
+        msgLogin.textContent = "Correo o contraseña incorrectos.";
+        msgLogin.className = "mt-2 text-danger text-center fw-bold";
+      }
     });
   }
 });
